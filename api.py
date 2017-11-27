@@ -1,6 +1,7 @@
 from flask import Flask
-from flask_restful import Resource, Api, reqparse, abort
+from flask_restful import Resource, Api, reqparse, abort, fields, marshal_with, marshal
 from flaskext.mysql import MySQL
+import json
 
 app = Flask(__name__)
 api = Api(app)
@@ -47,7 +48,6 @@ class Pesquisador(Resource):
 
     def delete(self, id):
         try:
-            # Busca todos os pesquisadores cadastrados
             query = "DELETE FROM universitat.pesquisador where id = %s"
 
             cursor.execute(query, (id))
@@ -66,7 +66,6 @@ class Pesquisador(Resource):
             _nome = args['nome']
             _cpf = args['cpf']
 
-            # Busca todos os pesquisadores cadastrados
             query = "UPDATE `universitat`.`pesquisador` SET `nome` = %s, `cpf` = %s WHERE `id` = %s"
 
             cursor.execute(query, (_nome, _cpf, id))
@@ -122,9 +121,129 @@ class PesquisadorList(Resource):
         except Exception as e:
             return {'error': str(e)}
 
+fields = {
+    'id': fields.Integer,
+    'titulo': fields.String,
+    'tempo_previsto': fields.Integer,
+    'data_inicio': fields.DateTime(dt_format='iso8601'),
+    'data_fim': fields.DateTime(dt_format='iso8601'),
+    'status': fields.String
+}
+
+class ProjetoPesquisa(Resource):
+    @marshal_with(fields, envelope=None)
+    def get(self, id, **kwargs):
+        try:
+            query = "SELECT * FROM universitat.projeto_pesquisa where id = %s"
+
+            cursor.execute(query, (id))
+
+            projeto = [dict((cursor.description[i][0], value)
+                                for i, value in enumerate(row)) for row in cursor.fetchmany(1)]
+
+            if projeto is None:
+                return "Projeto não encontrado", 404
+            else:
+                return projeto, 200
+
+        except Exception as e:
+            return {'error': str(e)}
+
+    def delete(self, id):
+        try:
+            query = "DELETE FROM universitat.projeto_pesquisa where id = %s"
+
+            cursor.execute(query, (id))
+
+            conn.commit()
+
+        except Exception as e:
+            return {'error': str(e)}
+
+    def put(self, id):
+        try:
+            parser.add_argument('titulo', type=str)
+            parser.add_argument('tempo_previsto', type=int)
+            parser.add_argument('data_inicio', type=str)
+            parser.add_argument('data_fim', type=str)
+            parser.add_argument('status', type=int)
+
+            args = parser.parse_args()
+
+            _titulo = args['titulo']
+            _tempo_previsto = args['tempo_previsto']
+            _data_inicio = args['data_inicio']
+            _data_fim = args['data_fim']
+            _status = args['status']
+
+            # Busca todos os pesquisadores cadastrados
+            query = "UPDATE `universitat`.`projeto_pesquisa` SET `titulo` = %s, `tempo_previsto` = %s, `data_inicio` = %s, `data_fim` = %s, `status` = %s WHERE `id` = %s"
+
+            cursor.execute(query, (_titulo, _tempo_previsto, _data_inicio, _data_fim, _status, id))
+
+            conn.commit()
+
+        except Exception as e:
+            return {'error': str(e)}
+
+
+class ProjetoPesquisaList(Resource):
+    def get(self):
+        try:
+            # Busca todos os pesquisadores cadastrados
+            query = "SELECT * FROM universitat.projeto_pesquisa"
+
+            cursor.execute(query)
+
+            projetos = [dict((cursor.description[i][0], value)
+                                  for i, value in enumerate(row)) for row in cursor.fetchall()]
+
+            return projetos, 200
+
+        except Exception as e:
+            return {'error': str(e)}
+
+    def post(self):
+        try:
+            parser.add_argument('id', type=id)
+            parser.add_argument('titulo', type=str)
+            parser.add_argument('tempo_previsto', type=int)
+            parser.add_argument('data_inicio', type=str)
+            parser.add_argument('data_fim', type=str)
+            parser.add_argument('status', type=int)
+
+            args = parser.parse_args()
+
+            _id = args['id']
+            _titulo = args['titulo']
+            _tempo_previsto = args['tempo_previsto']
+            _data_inicio = args['data_inicio']
+            _data_fim = args['data_fim']
+            _status = args['status']
+
+            # Cria a conexao com o banco de dados.
+            conn = mysql.connect()
+
+            # Cria um cursor para iterar sobre os elementos retornados do banco.
+            cursor = conn.cursor()
+
+            query = "INSERT INTO `universitat`.`projeto_pesquisa` (`id`, `titulo`,`tempo_previsto`,`data_inicio`,`data_fim`,`status`) VALUES (%s,%s,%s,%s,%s,%s)"
+
+            cursor.execute(query, (_id, _titulo, _tempo_previsto, _data_inicio, _data_fim, _status))
+
+            conn.commit()
+
+            return "Ok", 200
+
+        except Exception as e:
+            return {'error': str(e)}
+
 
 api.add_resource(Pesquisador, '/pesquisadores/<id>')
 api.add_resource(PesquisadorList, '/pesquisadores')
+api.add_resource(ProjetoPesquisa, '/projetospesquisa/<id>')
+api.add_resource(ProjetoPesquisaList, '/projetospesquisa')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
