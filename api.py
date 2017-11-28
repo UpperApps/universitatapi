@@ -95,12 +95,10 @@ class PesquisadorList(Resource):
     def post(self):
         try:
             # Parse the arguments
-            parser.add_argument('id', type=int, help='ID do pesquisador.')
             parser.add_argument('nome', type=str, help='Nome do pesquisador.')
             parser.add_argument('cpf', type=int, help='CPF do pesquisador.')
             args = parser.parse_args()
 
-            _id = args['id']
             _nome = args['nome']
             _cpf = args['cpf']
 
@@ -110,9 +108,9 @@ class PesquisadorList(Resource):
             # Cria um cursor para iterar sobre os elementos retornados do banco.
             cursor = conn.cursor()
 
-            query = "INSERT INTO `universitat`.`pesquisador` (`id`,`nome`,`cpf`) VALUES (%s,%s,%s)"
+            query = "INSERT INTO `universitat`.`pesquisador` (`nome`,`cpf`) VALUES (%s,%s)"
 
-            cursor.execute(query, (_id, _nome, _cpf))
+            cursor.execute(query, (_nome, _cpf))
 
             conn.commit()
 
@@ -126,7 +124,7 @@ fields = {
     'titulo': fields.String,
     'tempo_previsto': fields.Integer,
     'data_inicio': fields.DateTime(dt_format='iso8601'),
-    'data_fim': fields.DateTime(dt_format='iso8601'),
+    'data_conclusao': fields.DateTime(dt_format='iso8601'),
     'status': fields.String
 }
 
@@ -134,7 +132,9 @@ class ProjetoPesquisa(Resource):
     @marshal_with(fields, envelope=None)
     def get(self, id, **kwargs):
         try:
-            query = "SELECT * FROM universitat.projeto_pesquisa where id = %s"
+            # query = "SELECT * FROM universitat.projeto_pesquisa where id = %s"
+            query = "SELECT p.*, s.status FROM universitat.projeto_pesquisa p, universitat.status_pesquisa s " \
+                    "where p.status_pesquisa_id = s.id and p.id = %s"
 
             cursor.execute(query, (id))
 
@@ -165,7 +165,7 @@ class ProjetoPesquisa(Resource):
             parser.add_argument('titulo', type=str)
             parser.add_argument('tempo_previsto', type=int)
             parser.add_argument('data_inicio', type=str)
-            parser.add_argument('data_fim', type=str)
+            parser.add_argument('data_conclusao', type=str)
             parser.add_argument('status', type=int)
 
             args = parser.parse_args()
@@ -173,13 +173,13 @@ class ProjetoPesquisa(Resource):
             _titulo = args['titulo']
             _tempo_previsto = args['tempo_previsto']
             _data_inicio = args['data_inicio']
-            _data_fim = args['data_fim']
+            _data_conclusao = args['data_conclusao']
             _status = args['status']
 
             # Busca todos os pesquisadores cadastrados
-            query = "UPDATE `universitat`.`projeto_pesquisa` SET `titulo` = %s, `tempo_previsto` = %s, `data_inicio` = %s, `data_fim` = %s, `status` = %s WHERE `id` = %s"
+            query = "UPDATE `universitat`.`projeto_pesquisa` SET `titulo` = %s, `tempo_previsto` = %s, `data_inicio` = %s, `data_conclusao` = %s, `status_pesquisa_id` = %s WHERE `id` = %s"
 
-            cursor.execute(query, (_titulo, _tempo_previsto, _data_inicio, _data_fim, _status, id))
+            cursor.execute(query, (_titulo, _tempo_previsto, _data_inicio, _data_conclusao, _status, id))
 
             conn.commit()
 
@@ -188,10 +188,12 @@ class ProjetoPesquisa(Resource):
 
 
 class ProjetoPesquisaList(Resource):
+    @marshal_with(fields, envelope=None)
     def get(self):
         try:
             # Busca todos os pesquisadores cadastrados
-            query = "SELECT * FROM universitat.projeto_pesquisa"
+            query = "SELECT p.*, s.status FROM universitat.projeto_pesquisa p, universitat.status_pesquisa s " \
+                    "where p.status_pesquisa_id = s.id"
 
             cursor.execute(query)
 
@@ -205,20 +207,18 @@ class ProjetoPesquisaList(Resource):
 
     def post(self):
         try:
-            parser.add_argument('id', type=id)
             parser.add_argument('titulo', type=str)
             parser.add_argument('tempo_previsto', type=int)
             parser.add_argument('data_inicio', type=str)
-            parser.add_argument('data_fim', type=str)
+            parser.add_argument('data_conclusao', type=str)
             parser.add_argument('status', type=int)
 
             args = parser.parse_args()
 
-            _id = args['id']
             _titulo = args['titulo']
             _tempo_previsto = args['tempo_previsto']
             _data_inicio = args['data_inicio']
-            _data_fim = args['data_fim']
+            _data_conclusao = args['data_conclusao']
             _status = args['status']
 
             # Cria a conexao com o banco de dados.
@@ -227,9 +227,9 @@ class ProjetoPesquisaList(Resource):
             # Cria um cursor para iterar sobre os elementos retornados do banco.
             cursor = conn.cursor()
 
-            query = "INSERT INTO `universitat`.`projeto_pesquisa` (`id`, `titulo`,`tempo_previsto`,`data_inicio`,`data_fim`,`status`) VALUES (%s,%s,%s,%s,%s,%s)"
+            query = "INSERT INTO `universitat`.`projeto_pesquisa` (`titulo`,`tempo_previsto`,`data_inicio`,`data_conclusao`,`status_pesquisa_id`) VALUES (%s,%s,%s,%s,%s)"
 
-            cursor.execute(query, (_id, _titulo, _tempo_previsto, _data_inicio, _data_fim, _status))
+            cursor.execute(query, (_titulo, _tempo_previsto, _data_inicio, _data_conclusao, _status))
 
             conn.commit()
 
