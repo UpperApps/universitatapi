@@ -119,7 +119,7 @@ class PesquisadorList(Resource):
         except Exception as e:
             return {'error': str(e)}
 
-fields = {
+projeto_pesquisa_fields = {
     'id': fields.Integer,
     'titulo': fields.String,
     'tempo_previsto': fields.Integer,
@@ -129,7 +129,7 @@ fields = {
 }
 
 class ProjetoPesquisa(Resource):
-    @marshal_with(fields, envelope=None)
+    @marshal_with(projeto_pesquisa_fields, envelope=None)
     def get(self, id, **kwargs):
         try:
             # query = "SELECT * FROM universitat.projeto_pesquisa where id = %s"
@@ -188,8 +188,8 @@ class ProjetoPesquisa(Resource):
 
 
 class ProjetoPesquisaList(Resource):
-    @marshal_with(fields, envelope=None)
-    def get(self):
+    @marshal_with(projeto_pesquisa_fields, envelope=None)
+    def get(self, **kwargs):
         try:
             # Busca todos os pesquisadores cadastrados
             query = "SELECT p.*, s.status FROM universitat.projeto_pesquisa p, universitat.status_pesquisa s " \
@@ -239,10 +239,58 @@ class ProjetoPesquisaList(Resource):
             return {'error': str(e)}
 
 
+class PesquisadorProjetoPesquisaList(Resource):
+    def get(self):
+        try:
+            # Busca todos os pesquisadores cadastrados
+            query = "SELECT p.*, s.status FROM universitat.projeto_pesquisa p, universitat.status_pesquisa s " \
+                    "where p.status_pesquisa_id = s.id"
+
+            cursor.execute(query)
+
+            projetos = [dict((cursor.description[i][0], value)
+                                  for i, value in enumerate(row)) for row in cursor.fetchall()]
+
+            return projetos, 200
+
+        except Exception as e:
+            return {'error': str(e)}
+
+    def post(self):
+        try:
+            parser.add_argument('pesquisador_id', type=int)
+            parser.add_argument('projeto_pesquisa_id', type=int)
+            parser.add_argument('lider', type=int)
+
+            args = parser.parse_args()
+
+            _pesquisador_id = args['pesquisador_id']
+            _projeto_pesquisa_id = args['projeto_pesquisa_id']
+            _lider = args['lider']
+
+            # Cria a conexao com o banco de dados.
+            conn = mysql.connect()
+
+            # Cria um cursor para iterar sobre os elementos retornados do banco.
+            cursor = conn.cursor()
+
+            query = "INSERT INTO `universitat`.`pesquisador_projeto_pesquisa` (`pesquisador_id`,`projeto_pesquisa_id`,`lider`) VALUES (%s,%s,%s)"
+
+            cursor.execute(query, (_pesquisador_id, _projeto_pesquisa_id, _lider))
+
+            conn.commit()
+
+            return "Ok", 200
+
+        except Exception as e:
+            return {'error': str(e)}
+
+
 api.add_resource(Pesquisador, '/pesquisadores/<id>')
 api.add_resource(PesquisadorList, '/pesquisadores')
 api.add_resource(ProjetoPesquisa, '/projetospesquisa/<id>')
 api.add_resource(ProjetoPesquisaList, '/projetospesquisa')
+api.add_resource(PesquisadorProjetoPesquisaList, '/pesquisadoresprojetospesquisa')
 
 
 if __name__ == '__main__':
